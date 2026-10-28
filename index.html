@@ -284,6 +284,25 @@
       animation: shakeError 0.4s ease-in-out;
     }
 
+    /* Smart Dynamic Slider & Orange Cart Pulse Animation */
+    @keyframes orangePulseGlow {
+      0%, 100% {
+        box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35), 0 0 0 0 rgba(249, 115, 22, 0.4);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 4px 18px rgba(249, 115, 22, 0.6), 0 0 0 4px rgba(249, 115, 22, 0.15);
+        transform: scale(1.04);
+      }
+    }
+    .animate-orange-pulse {
+      animation: orangePulseGlow 2s infinite ease-in-out;
+    }
+
+    .smart-slide-indicator {
+      transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), background 0.32s ease, box-shadow 0.32s ease;
+    }
+
     /* =========================================================================
        GLOBAL DARK MODE STYLES & OVERRIDES
        ========================================================================= */
@@ -3187,14 +3206,46 @@
       <i data-lucide="printer" class="w-5 h-5"></i>
       <span class="text-[10px]">Print/FC</span>
     </button>
-    <button onclick="switchPublicTab('LACAK')" id="botNavLacak" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-semibold transition">
-      <i data-lucide="package-search" class="w-5 h-5"></i>
-      <span class="text-[10px]">Lacak</span>
-    </button>
-    <button onclick="toggleKikoChat(true)" id="botNavKiko" class="flex flex-col items-center gap-0.5 text-[#03AC0E] relative font-semibold transition" title="Kiko AI & Keranjang">
+    <!-- SLOT 3: SMART DYNAMIC SLIDER (DEFAULT: KERANJANG ORANGE BERANIMASI ⇄ LACAK PESANAN) -->
+    <div id="botNavDynamicCenter" class="relative flex flex-col items-center justify-center -mt-2.5 select-none">
+      <div id="dynamicSliderCapsule" class="relative flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md transition-all">
+        
+        <!-- Sliding Indicator Pill (Default Left: Orange Glowing) -->
+        <div id="dynamicSlidePill" class="smart-slide-indicator absolute top-0.5 bottom-0.5 left-0.5 w-[52px] rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 shadow-md shadow-orange-500/35 transform translate-x-0"></div>
+
+        <!-- Tombol Sisi Kiri: Keranjang Belanja -->
+        <button type="button" id="btnSlideCart" onclick="handleDynamicCenterClick('CART')" 
+          class="relative z-10 w-[52px] h-9 flex flex-col items-center justify-center text-white font-black transition active:scale-95" 
+          title="Keranjang Belanja">
+          <div class="relative flex items-center justify-center">
+            <i data-lucide="shopping-bag" class="w-4 h-4 drop-shadow-xs"></i>
+            <span id="botNavOrangeCartBadge" class="hidden absolute -top-1.5 -right-2 bg-rose-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-xs">0</span>
+          </div>
+          <span class="text-[8.5px] font-black tracking-tight leading-none mt-0.5">Keranjang</span>
+        </button>
+
+        <!-- Tombol Sisi Kanan: Lacak Pesanan -->
+        <button type="button" id="btnSlideTrack" onclick="handleDynamicCenterClick('TRACK')" 
+          class="relative z-10 w-[52px] h-9 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 font-semibold transition active:scale-95" 
+          title="Lacak Status Pesanan">
+          <div class="relative flex items-center justify-center">
+            <i data-lucide="package-search" class="w-4 h-4"></i>
+            <span id="botNavTrackBadge" class="hidden absolute -top-1.5 -right-2 bg-emerald-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-xs">0</span>
+          </div>
+          <span class="text-[8.5px] font-extrabold tracking-tight leading-none mt-0.5">Lacak</span>
+        </button>
+      </div>
+
+      <!-- Quick Micro-Toggle Indicator -->
+      <button type="button" id="dynamicSlideHint" onclick="toggleDynamicCenterSlide()" class="text-[8px] font-bold text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-0.5 hover:underline active:scale-95">
+        <span id="dynamicSlideHintText">⇄ Geser ke Lacak</span>
+      </button>
+    </div>
+
+    <!-- SLOT 4: KIKO AI BOT ASISTEN (CLEAN TANPA REDUNDAN BADGE) -->
+    <button onclick="toggleKikoChat(true)" id="botNavKiko" class="flex flex-col items-center gap-0.5 text-[#03AC0E] relative font-semibold transition" title="Kiko AI Asisten Cerdas">
       <div class="relative w-8 h-8 -mt-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 border-2 border-white dark:border-slate-800">
         <i data-lucide="bot" class="w-4 h-4"></i>
-        <span id="botNavCartBadge" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-white">0</span>
       </div>
       <span class="text-[10px] font-extrabold text-[#03AC0E]">Kiko AI</span>
     </button>
@@ -3833,6 +3884,9 @@
       initPrintCalculatorOptions();
       renderKikoWelcomeMessage();
       renderPublicOrderTrackingList();
+      updateCartHeaderBadge();
+      updateActiveOrdersBadge();
+      if (typeof setDynamicCenterMode === 'function') setDynamicCenterMode('CART', false);
     });
 
     /**
@@ -4623,6 +4677,7 @@
         });
       }
 
+      if (typeof setDynamicCenterMode === 'function') setDynamicCenterMode('CART', false);
       updateCartHeaderBadge();
       renderPublicCatalog();
       showToast(`✅ ${product.nama} (${newQty}x)${isGrosir ? ' — HARGA GROSIR AKTIF!' : ''} masuk keranjang.`);
@@ -4633,18 +4688,33 @@
       const badge = document.getElementById('cartCountBadge');
       if (badge) badge.textContent = totalItems;
 
-      // Update badge di maskot Kiko Robot melayang
-      const mascotBadge = document.getElementById('kikoMascotCartBadge');
-      if (mascotBadge) {
-        mascotBadge.textContent = totalItems;
-        mascotBadge.classList.toggle('hidden', totalItems <= 0);
+      // Update badge oranye beranimasi pada Smart Dynamic Slider di Bottom Nav
+      const orangeBadge = document.getElementById('botNavOrangeCartBadge');
+      const capsule = document.getElementById('dynamicSliderCapsule');
+      if (orangeBadge) {
+        orangeBadge.textContent = totalItems;
+        orangeBadge.classList.toggle('hidden', totalItems <= 0);
+      }
+      if (capsule) {
+        capsule.classList.toggle('animate-orange-pulse', totalItems > 0 && currentDynamicSlideMode === 'CART');
       }
 
-      // Update badge di tombol navigasi bawah mobile Kiko AI
+      // Pastikan badge redundan pada robot & Kiko AI tetap tersembunyi
+      const mascotBadge = document.getElementById('kikoMascotCartBadge');
+      if (mascotBadge) mascotBadge.classList.add('hidden');
       const botNavBadge = document.getElementById('botNavCartBadge');
-      if (botNavBadge) {
-        botNavBadge.textContent = totalItems;
-        botNavBadge.classList.toggle('hidden', totalItems <= 0);
+      if (botNavBadge) botNavBadge.classList.add('hidden');
+
+      // Update juga badge status pesanan aktif jika ada
+      updateActiveOrdersBadge();
+    }
+
+    function updateActiveOrdersBadge() {
+      const activeOrders = (STATE.orders || []).filter(o => o.statusPesanan !== 'Selesai');
+      const trackBadge = document.getElementById('botNavTrackBadge');
+      if (trackBadge) {
+        trackBadge.textContent = activeOrders.length;
+        trackBadge.classList.toggle('hidden', activeOrders.length === 0);
       }
     }
 
@@ -5645,6 +5715,7 @@
         overlay.innerHTML = '';
       }
       if (goToTracking) {
+        if (typeof setDynamicCenterMode === 'function') setDynamicCenterMode('TRACK', false);
         switchPublicTab('LACAK');
         const latestOrder = STATE.orders[0];
         if (latestOrder) {
@@ -5765,6 +5836,8 @@
       STATE.cart = [];
       STATE.uploadedPaymentProof = null;
       updateCartHeaderBadge();
+      updateActiveOrdersBadge();
+      if (typeof setDynamicCenterMode === 'function') setDynamicCenterMode('TRACK', false);
       closeCheckoutModal();
       renderPublicCatalog();
       renderPublicOrderTrackingList(kodeAmbil);
@@ -5977,15 +6050,19 @@
       }
 
       if (tabName === 'LACAK') {
+        if (typeof setDynamicCenterMode === 'function') setDynamicCenterMode('TRACK', false);
         renderPublicOrderTrackingList();
         const lacakView = document.getElementById('publicSubViewLacak');
         if (lacakView) {
           lacakView.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         safeCreateIcons();
-      } else if (tabName === 'CETAK') {
-        safeCreateIcons();
-        initCyberGlowTouchListeners();
+      } else {
+        if (typeof setDynamicCenterMode === 'function') setDynamicCenterMode('CART', false);
+        if (tabName === 'CETAK') {
+          safeCreateIcons();
+          initCyberGlowTouchListeners();
+        }
       }
     }
 
@@ -8445,6 +8522,79 @@ Mohon konfirmasi ketersediaan stok, harga grosir terkini, dan jadwal ekspedisi k
 
         showToast(`ℹ️ [BEEP!] Kode barcode ${code} terbaca.`);
       }
+    }
+
+    /**
+     * 17. SMART DYNAMIC SLIDER (BOTTOM NAV: KERANJANG ORANGE ⇄ LACAK PESANAN)
+     * Default: Tombol Keranjang oranye neon beranimasi pulse saat ada item.
+     * Otomatis slide ke Lacak saat pesanan dibuat / dibayar, dan bisa di-slide bolak-balik 1-klik.
+     */
+    let currentDynamicSlideMode = 'CART'; // 'CART' | 'TRACK'
+
+    function setDynamicCenterMode(mode, triggerAction = false) {
+      currentDynamicSlideMode = mode;
+      const pill = document.getElementById('dynamicSlidePill');
+      const btnCart = document.getElementById('btnSlideCart');
+      const btnTrack = document.getElementById('btnSlideTrack');
+      const hintText = document.getElementById('dynamicSlideHintText');
+      const capsule = document.getElementById('dynamicSliderCapsule');
+
+      if (!pill || !btnCart || !btnTrack) return;
+
+      if (mode === 'CART') {
+        // Geser Pill ke Kiri (Keranjang Belanja Oranye)
+        pill.style.transform = 'translateX(0px)';
+        pill.className = 'smart-slide-indicator absolute top-0.5 bottom-0.5 left-0.5 w-[52px] rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 shadow-md shadow-orange-500/35';
+
+        btnCart.className = 'relative z-10 w-[52px] h-9 flex flex-col items-center justify-center text-white font-black transition active:scale-95';
+        btnTrack.className = 'relative z-10 w-[52px] h-9 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 font-semibold transition active:scale-95';
+
+        if (hintText) hintText.textContent = '⇄ Geser ke Lacak';
+
+        if (capsule) {
+          capsule.classList.toggle('animate-orange-pulse', STATE.cart.length > 0);
+        }
+
+        if (triggerAction) {
+          openCheckoutModal();
+        }
+      } else {
+        // Geser Pill ke Kanan (Lacak Pesanan Hijau Emerald)
+        pill.style.transform = 'translateX(52px)';
+        pill.className = 'smart-slide-indicator absolute top-0.5 bottom-0.5 left-0.5 w-[52px] rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 shadow-md shadow-emerald-500/35';
+
+        btnCart.className = 'relative z-10 w-[52px] h-9 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 font-semibold transition active:scale-95';
+        btnTrack.className = 'relative z-10 w-[52px] h-9 flex flex-col items-center justify-center text-white font-black transition active:scale-95';
+
+        if (hintText) hintText.textContent = '⇄ Geser ke Keranjang';
+
+        if (capsule) {
+          capsule.classList.remove('animate-orange-pulse');
+        }
+
+        if (triggerAction) {
+          switchPublicTab('LACAK');
+        }
+      }
+      safeCreateIcons();
+    }
+
+    function handleDynamicCenterClick(targetMode) {
+      if (currentDynamicSlideMode === targetMode) {
+        if (targetMode === 'CART') {
+          openCheckoutModal();
+        } else {
+          switchPublicTab('LACAK');
+        }
+      } else {
+        setDynamicCenterMode(targetMode, true);
+      }
+    }
+
+    function toggleDynamicCenterSlide() {
+      const nextMode = currentDynamicSlideMode === 'CART' ? 'TRACK' : 'CART';
+      setDynamicCenterMode(nextMode, false);
+      showToast(nextMode === 'CART' ? '🛒 Mode Keranjang aktif' : '📦 Mode Lacak Pesanan aktif');
     }
   </script>
 </body>
