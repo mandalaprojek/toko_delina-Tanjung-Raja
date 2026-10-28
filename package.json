@@ -1,0 +1,12 @@
+{
+  "name": "kiko-smart-stationery",
+  "version": "1.0.0",
+  "description": "Kiko POS & Smart Shop — Toko Delina ATK & Fotokopi",
+  "scripts": {
+    "start": "node server.js",
+    "push": "clasp push",
+    "deploy": "clasp deploy"
+  },
+  "author": "Toko Delina",
+  "license": "ISC"
+}
