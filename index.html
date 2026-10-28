@@ -2,8 +2,14 @@
 <html lang="id" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#059669" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#03AC0E" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Toko Delina" />
+  <meta name="application-name" content="Toko Delina" />
+  <link rel="manifest" href="manifest.json" />
   <title>Kiko POS & Smart Shop — Toko Delina ATK & Fotokopi Tanjung Raja</title>
 
   <script>
@@ -226,6 +232,56 @@
       box-shadow: 0 0 14px 2px #10B981;
       animation: scanBeam 2.8s ease-in-out infinite;
       pointer-events: none;
+    }
+
+    /* PWA Mobile-First Anti-Overflow & Safe Area Optimization */
+    html, body {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      -webkit-tap-highlight-color: transparent;
+    }
+    @supports (padding-top: env(safe-area-inset-top)) {
+      body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    }
+    @media all and (display-mode: standalone) {
+      #dualStickyHeader {
+        padding-top: max(0.25rem, env(safe-area-inset-top));
+      }
+      #tokopediaBottomNav {
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+      }
+    }
+
+    /* Animasi Garis Laser Barcode Scanner */
+    @keyframes laserSweep {
+      0% { top: 8%; opacity: 0.8; }
+      50% { top: 88%; opacity: 1; }
+      100% { top: 8%; opacity: 0.8; }
+    }
+    .laser-scanner-line {
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #10B981 25%, #34D399 50%, #10B981 75%, transparent);
+      box-shadow: 0 0 12px 2px #10B981, 0 0 6px #34D399;
+      animation: laserSweep 2s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Efek Getar Halus (Shake Effect) Saat Struk Belum Diunggah */
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .animate-shake {
+      animation: shakeError 0.4s ease-in-out;
     }
 
     /* =========================================================================
@@ -570,6 +626,12 @@
             <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
             <span class="hidden sm:inline">Keranjang</span>
             <span id="cartCountBadge" class="bg-amber-500 text-slate-950 font-black text-xs px-2 py-0.5 rounded-full">0</span>
+          </button>
+
+          <!-- Tombol Scan Barcode SKU & Kode Lacak (Publik) -->
+          <button onclick="openBarcodeScannerModal('PUBLIC')" title="Scan Barcode SKU / Kode Lacak" class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 font-bold text-xs sm:text-sm px-2.5 sm:px-3 py-2 rounded-xl transition shadow-xs">
+            <i data-lucide="scan-barcode" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+            <span class="hidden md:inline">Scan SKU</span>
           </button>
 
           <!-- Tombol Switcher Dark Mode / Light Mode -->
@@ -1244,8 +1306,12 @@
                  oninput="renderPosItemGrid()"
                 class="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600" />
             </div>
-            <button onclick="handlePosBarcodeScan()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition">
-              + Scan SKU
+            <button type="button" onclick="openBarcodeScannerModal('POS')" title="Buka Kamera Barcode Scanner" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 sm:px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 shrink-0">
+              <i data-lucide="camera" class="w-4 h-4"></i>
+              <span class="hidden sm:inline">Scan Kamera</span>
+            </button>
+            <button type="button" onclick="handlePosBarcodeScan()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 sm:px-4 py-2.5 rounded-xl transition shrink-0">
+              + Cari
             </button>
           </div>
 
@@ -2066,9 +2132,9 @@
        FLOATING CHAT WIDGET "KIKO ON-WEB" DENGAN GLOWING RAINBOW / CYBER BORDER
        (US-03: Conversational Commerce — Auto-Add to Cart & Substitusi Stok 0)
        ========================================================================= -->
-  <div class="fixed bottom-5 right-5 z-40">
+  <div id="floatingKikoWidgetContainer" class="fixed bottom-[74px] sm:bottom-6 right-3 sm:right-6 z-40 flex flex-col items-end pointer-events-none">
     <!-- Panel Chat Kiko -->
-    <div id="kikoChatPanel" class="hidden w-[350px] sm:w-[390px] mb-3 kiko-cyber-border shadow-2xl overflow-hidden">
+    <div id="kikoChatPanel" class="hidden w-[350px] sm:w-[390px] mb-3 kiko-cyber-border shadow-2xl overflow-hidden pointer-events-auto">
       <div class="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-700 text-white p-4 flex items-center justify-between rounded-t-2xl">
         <div class="flex items-center gap-2.5">
           <div class="w-9 h-9 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-extrabold shadow">
@@ -2118,41 +2184,48 @@
     <!-- Floating Mascot Widget "Kiko On-Web" (Robot Kiko Berpeci dengan Animated Glowing Rainbow & Gold Border) -->
     <div class="flex items-center justify-end gap-2.5">
       <!-- Speech Bubble Animasi Kiko -->
-      <div onclick="toggleKikoChat()" class="cursor-pointer hidden sm:flex items-center gap-1.5 bg-slate-950/90 text-white border border-amber-400/60 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-2xl text-xs font-bold hover:scale-105 transition active:scale-95">
+      <div onclick="toggleKikoChat()" class="cursor-pointer hidden sm:flex items-center gap-1.5 bg-slate-950/90 text-white border border-amber-400/60 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-2xl text-xs font-bold hover:scale-105 transition active:scale-95 pointer-events-auto">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
         <span class="text-amber-300">Hai Kak! Belanja yuk</span>
         <span class="text-slate-400">|</span>
         <span class="text-emerald-300 font-extrabold text-[11px]">Kiko AI 🤖</span>
       </div>
 
-      <!-- Tombol Maskot Robot Kiko Berpeci -->
-      <button onclick="toggleKikoChat()" id="btnFloatingKikoMascot" title="Klik untuk belanja via Chat Kiko AI" class="kiko-robot-fab-glow group">
-        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center relative overflow-hidden shadow-2xl border-2 border-amber-400/90">
-          <svg viewBox="0 0 48 48" class="w-10 h-10 sm:w-11 sm:h-11 filter drop-shadow group-hover:scale-110 transition duration-200">
-            <!-- Peci / Kopiah Hitam dengan Lis Emas Syariah -->
-            <path d="M12 16 Q24 9 36 16 L35 11 Q24 5 13 11 Z" fill="#0F172A" stroke="#F59E0B" stroke-width="1.3"/>
-            <path d="M12 16 Q24 13 36 16" stroke="#FBBF24" stroke-width="1.6" fill="none"/>
-            <circle cx="24" cy="11.5" r="1.5" fill="#F59E0B"/>
-            
-            <!-- Kepala Robot Kiko -->
-            <rect x="11" y="17" width="26" height="21" rx="8" fill="#1E293B" stroke="#10B981" stroke-width="1.6"/>
-            <!-- Visor / Layar Wajah -->
-            <rect x="14" y="21" width="20" height="11" rx="4" fill="#0B132B"/>
-            <!-- Dua Mata Cyan Bercahaya Berkedip -->
-            <circle cx="18.5" cy="26" r="2.5" fill="#06B6D4">
-              <animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="29.5" cy="26" r="2.5" fill="#06B6D4">
-              <animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite"/>
-            </circle>
-            <!-- Senyuman Robot -->
-            <path d="M21 34 Q24 36.5 27 34" fill="none" stroke="#F59E0B" stroke-width="1.6" stroke-linecap="round"/>
-            <!-- Antena Samping / Sensor Hijau -->
-            <rect x="7.5" y="23" width="3.5" height="7" rx="1.5" fill="#10B981"/>
-            <rect x="37" y="23" width="3.5" height="7" rx="1.5" fill="#10B981"/>
-          </svg>
-        </div>
-      </button>
+      <!-- Tombol Maskot Robot Kiko Berpeci & Floating Cart Counter Badge -->
+      <div class="relative pointer-events-auto">
+        <button onclick="toggleKikoChat()" id="btnFloatingKikoMascot" title="Klik untuk belanja via Chat Kiko AI" class="kiko-robot-fab-glow group">
+          <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center relative overflow-hidden shadow-2xl border-2 border-amber-400/90">
+            <svg viewBox="0 0 48 48" class="w-10 h-10 sm:w-11 sm:h-11 filter drop-shadow group-hover:scale-110 transition duration-200">
+              <!-- Peci / Kopiah Hitam dengan Lis Emas Syariah -->
+              <path d="M12 16 Q24 9 36 16 L35 11 Q24 5 13 11 Z" fill="#0F172A" stroke="#F59E0B" stroke-width="1.3"/>
+              <path d="M12 16 Q24 13 36 16" stroke="#FBBF24" stroke-width="1.6" fill="none"/>
+              <circle cx="24" cy="11.5" r="1.5" fill="#F59E0B"/>
+              
+              <!-- Kepala Robot Kiko -->
+              <rect x="11" y="17" width="26" height="21" rx="8" fill="#1E293B" stroke="#10B981" stroke-width="1.6"/>
+              <!-- Visor / Layar Wajah -->
+              <rect x="14" y="21" width="20" height="11" rx="4" fill="#0B132B"/>
+              <!-- Dua Mata Cyan Bercahaya Berkedip -->
+              <circle cx="18.5" cy="26" r="2.5" fill="#06B6D4">
+                <animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="29.5" cy="26" r="2.5" fill="#06B6D4">
+                <animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite"/>
+              </circle>
+              <!-- Senyuman Robot -->
+              <path d="M21 34 Q24 36.5 27 34" fill="none" stroke="#F59E0B" stroke-width="1.6" stroke-linecap="round"/>
+              <!-- Antena Samping / Sensor Hijau -->
+              <rect x="7.5" y="23" width="3.5" height="7" rx="1.5" fill="#10B981"/>
+              <rect x="37" y="23" width="3.5" height="7" rx="1.5" fill="#10B981"/>
+            </svg>
+          </div>
+        </button>
+
+        <!-- Floating Cart Badge Counter on Mascot -->
+        <span id="kikoMascotCartBadge" onclick="event.stopPropagation(); openCheckoutModal();" class="hidden absolute -top-1.5 -left-1.5 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 shadow-lg flex items-center justify-center animate-bounce z-30 cursor-pointer" title="Lihat Keranjang Belanja">
+          0
+        </span>
+      </div>
     </div>
   </div>
 
@@ -2223,34 +2296,133 @@
         </div>
       </div>
 
-      <!-- Informasi QRIS & Upload Bukti Bayar untuk Validasi Vision AI (Cyber Glow Card) -->
-      <div class="cyber-glow-card bg-emerald-50/70 dark:bg-emerald-950/30 p-3.5 space-y-2.5 text-xs rounded-2xl">
-        <div class="flex flex-wrap items-center justify-between gap-2">
+      <!-- Informasi QRIS Resmi, Rekening Bank & Upload Bukti Bayar Wajib (Cyber Glow Card) -->
+      <div class="cyber-glow-card bg-emerald-50/80 dark:bg-emerald-950/40 p-4 space-y-3.5 text-xs rounded-2xl border border-emerald-300 dark:border-emerald-700/80">
+        <!-- Rekening Bank & Tombol Salin -->
+        <div class="bg-white dark:bg-slate-800/90 p-3 rounded-xl border border-emerald-200 dark:border-emerald-700/60 flex flex-wrap items-center justify-between gap-2.5">
           <div>
-            <span class="font-extrabold text-emerald-950 dark:text-emerald-200 block">Pembayaran & Validasi Otomatis Vision AI</span>
-            <span class="text-emerald-800 dark:text-emerald-300">BRI: <strong>5678-01-023456-53-1</strong> (a.n. Toko Delina ATK) / Scan QRIS Toko</span>
+            <span class="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-extrabold block">Transfer Rekening Resmi:</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 font-mono">BRI 5678-01-023456-53-1</span>
+              <span class="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">(a.n. Toko Delina ATK)</span>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="toggleQrisPreviewModal(true)" class="inline-flex items-center gap-1.5 bg-[#03AC0E] hover:bg-[#02940c] text-white text-[11px] font-black px-3 py-1.5 rounded-xl shadow-xs transition">
-              <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
-              <span>Buka QRIS Toko</span>
-            </button>
-            <span class="bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg">Vision AI Ready</span>
+          <button type="button" onclick="copyTextToClipboard('567801023456531')" class="inline-flex items-center gap-1.5 bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 text-emerald-800 dark:text-emerald-300 font-extrabold px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700 transition active:scale-95 shadow-xs">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Salin No. Rekening</span>
+          </button>
+        </div>
+
+        <!-- Gambar QRIS Toko Delina Selalu Tampil -->
+        <div class="bg-white dark:bg-slate-800/90 p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-700/60 flex flex-col sm:flex-row items-center gap-4">
+          <!-- QR Code Canvas / Vector Display -->
+          <div class="w-36 h-36 bg-white p-2 rounded-2xl border-2 border-emerald-500 shadow-md flex flex-col items-center justify-center shrink-0">
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+              <!-- Corner Finder Patterns -->
+              <rect x="5" y="5" width="26" height="26" fill="#0F172A" rx="4"/>
+              <rect x="9" y="9" width="18" height="18" fill="#FFFFFF" rx="2"/>
+              <rect x="13" y="13" width="10" height="10" fill="#059669" rx="1"/>
+
+              <rect x="69" y="5" width="26" height="26" fill="#0F172A" rx="4"/>
+              <rect x="73" y="9" width="18" height="18" fill="#FFFFFF" rx="2"/>
+              <rect x="77" y="13" width="10" height="10" fill="#059669" rx="1"/>
+
+              <rect x="5" y="69" width="26" height="26" fill="#0F172A" rx="4"/>
+              <rect x="9" y="73" width="18" height="18" fill="#FFFFFF" rx="2"/>
+              <rect x="13" y="77" width="10" height="10" fill="#059669" rx="1"/>
+
+              <!-- Simulated QR Grid Data -->
+              <rect x="36" y="8" width="5" height="5" fill="#0F172A"/>
+              <rect x="44" y="8" width="5" height="5" fill="#0F172A"/>
+              <rect x="52" y="8" width="5" height="5" fill="#0F172A"/>
+              <rect x="36" y="16" width="5" height="5" fill="#0F172A"/>
+              <rect x="48" y="16" width="5" height="5" fill="#0F172A"/>
+              <rect x="56" y="16" width="5" height="5" fill="#0F172A"/>
+              <rect x="36" y="24" width="5" height="5" fill="#0F172A"/>
+              <rect x="44" y="24" width="5" height="5" fill="#0F172A"/>
+              <rect x="60" y="24" width="5" height="5" fill="#0F172A"/>
+
+              <rect x="8" y="36" width="5" height="5" fill="#0F172A"/>
+              <rect x="16" y="36" width="5" height="5" fill="#0F172A"/>
+              <rect x="24" y="36" width="5" height="5" fill="#0F172A"/>
+              <rect x="44" y="36" width="12" height="12" fill="#03AC0E" rx="2"/>
+              <rect x="68" y="36" width="5" height="5" fill="#0F172A"/>
+              <rect x="76" y="36" width="5" height="5" fill="#0F172A"/>
+              <rect x="84" y="36" width="5" height="5" fill="#0F172A"/>
+
+              <rect x="8" y="44" width="5" height="5" fill="#0F172A"/>
+              <rect x="20" y="44" width="5" height="5" fill="#0F172A"/>
+              <rect x="68" y="44" width="5" height="5" fill="#0F172A"/>
+              <rect x="80" y="44" width="5" height="5" fill="#0F172A"/>
+
+              <rect x="8" y="52" width="5" height="5" fill="#0F172A"/>
+              <rect x="16" y="52" width="5" height="5" fill="#0F172A"/>
+              <rect x="28" y="52" width="5" height="5" fill="#0F172A"/>
+              <rect x="36" y="52" width="5" height="5" fill="#0F172A"/>
+              <rect x="60" y="52" width="5" height="5" fill="#0F172A"/>
+              <rect x="72" y="52" width="5" height="5" fill="#0F172A"/>
+              <rect x="84" y="52" width="5" height="5" fill="#0F172A"/>
+
+              <rect x="36" y="68" width="5" height="5" fill="#0F172A"/>
+              <rect x="48" y="68" width="5" height="5" fill="#0F172A"/>
+              <rect x="56" y="68" width="5" height="5" fill="#0F172A"/>
+              <rect x="68" y="68" width="5" height="5" fill="#0F172A"/>
+              <rect x="80" y="68" width="5" height="5" fill="#0F172A"/>
+
+              <rect x="36" y="76" width="5" height="5" fill="#0F172A"/>
+              <rect x="44" y="76" width="5" height="5" fill="#0F172A"/>
+              <rect x="60" y="76" width="5" height="5" fill="#0F172A"/>
+              <rect x="76" y="76" width="5" height="5" fill="#0F172A"/>
+
+              <rect x="36" y="84" width="5" height="5" fill="#0F172A"/>
+              <rect x="48" y="84" width="5" height="5" fill="#0F172A"/>
+              <rect x="56" y="84" width="5" height="5" fill="#0F172A"/>
+              <rect x="68" y="84" width="5" height="5" fill="#0F172A"/>
+              <rect x="84" y="84" width="5" height="5" fill="#0F172A"/>
+            </svg>
+          </div>
+          <div class="flex-1 space-y-1 text-center sm:text-left">
+            <div class="flex items-center justify-center sm:justify-start gap-1.5">
+              <span class="font-black text-sm text-slate-900 dark:text-slate-100">QRIS TOKO DELINA ATK</span>
+              <span class="bg-[#03AC0E] text-white text-[9px] font-black px-1.5 py-0.5 rounded">NMID: ID1020039281901</span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">
+              Mendukung semua aplikasi perbankan (BCA, BRI, Mandiri, BNI) & dompet digital (GoPay, OVO, Dana, ShopeePay).
+            </p>
+            <div class="pt-1 flex items-center justify-center sm:justify-start gap-2">
+              <button type="button" onclick="toggleQrisPreviewModal(true)" class="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1">
+                <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+                <span>Perbesar Gambar QRIS</span>
+              </button>
+            </div>
           </div>
         </div>
-        <div>
-          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Unggah Foto Struk Transfer / Bukti QRIS</label>
+
+        <!-- Unggah Foto Struk Transfer (WAJIB) -->
+        <div id="chkPaymentProofContainer" class="p-3 bg-white dark:bg-slate-800/90 rounded-xl border-2 border-dashed border-emerald-400 dark:border-emerald-600 transition-all space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="receipt" class="w-4 h-4 text-emerald-600"></i>
+              <span>Unggah Struk Bayar / Screenshot QRIS</span>
+            </label>
+            <span id="chkProofStatusBadge" class="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+              Wajib Diunggah *
+            </span>
+          </div>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400">
+            Foto struk ATM, mutasi mobile banking, atau bukti QRIS wajib dilampirkan agar pesanan dapat diproses sistem.
+          </p>
           <input type="file" id="chkPaymentProofFile" accept="image/*" onchange="handlePaymentProofUpload(event)"
-            class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:text-white file:font-semibold cursor-pointer" />
-          <p id="visionAiPrecheckStatus" class="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold mt-1"></p>
+            class="w-full text-xs file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:bg-[#03AC0E] file:text-white file:font-black cursor-pointer bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-1" />
+          <p id="visionAiPrecheckStatus" class="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold"></p>
 
           <!-- Pratinjau Thumbnail Bukti Transfer -->
-          <div id="chkPaymentProofPreviewBox" class="hidden mt-2 p-2 bg-white dark:bg-slate-800 rounded-xl border border-emerald-300 dark:border-emerald-700 flex items-center gap-3">
-            <img id="chkPaymentProofThumb" src="" alt="Bukti Transfer" class="w-12 h-12 object-cover rounded-lg border border-slate-200 dark:border-slate-700 shrink-0" />
+          <div id="chkPaymentProofPreviewBox" class="hidden mt-2 p-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-300 dark:border-emerald-700 flex items-center gap-3">
+            <img id="chkPaymentProofThumb" src="" alt="Bukti Transfer" class="w-12 h-12 object-cover rounded-lg border border-emerald-400 shrink-0" />
             <div class="flex-1 min-w-0">
               <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200 block truncate" id="chkPaymentProofFileName"></span>
               <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                <i data-lucide="check" class="w-3 h-3"></i> Tervalidasi Vision AI
+                <i data-lucide="check" class="w-3 h-3"></i> Siap & Tervalidasi Vision AI
               </span>
             </div>
             <button type="button" onclick="clearPaymentProofUpload()" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50">
@@ -2301,6 +2473,92 @@
 
       <button onclick="toggleQrisPreviewModal(false)" class="w-full bg-[#03AC0E] hover:bg-[#02940c] text-white font-bold py-2.5 rounded-xl transition">
         Saya Sudah Scan / Mengerti
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL PEMINDAI BARCODE / QRIS (KAMERA ASLI & SIMULATOR CEPAT) -->
+  <div id="modalBarcodeScanner" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="cyber-glow-card bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative space-y-4 my-6 border border-emerald-500/40">
+      <button onclick="closeBarcodeScannerModal()" class="absolute top-4 right-4 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md">
+          <i data-lucide="scan-barcode" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-black text-slate-900 dark:text-slate-100">Pemindai Barcode SKU & QRIS</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Scan kemasan ATK atau coba simulasi instan di bawah</p>
+        </div>
+      </div>
+
+      <!-- Kotak Kamera Viewfinder dengan Garis Laser Pemindai -->
+      <div class="relative w-full aspect-video bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border-2 border-emerald-500 shadow-inner">
+        <video id="barcodeScannerVideo" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+        
+        <!-- Placeholder Kamera Non-Aktif -->
+        <div id="barcodeCameraPlaceholder" class="text-center p-4 space-y-2">
+          <div class="w-12 h-12 rounded-2xl bg-slate-800 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30 animate-pulse">
+            <i data-lucide="camera" class="w-6 h-6"></i>
+          </div>
+          <p class="text-xs text-slate-300 font-semibold">Kamera Pemindai Belum Aktif</p>
+          <button type="button" onclick="startBarcodeCamera()" class="bg-[#03AC0E] hover:bg-[#02940c] text-white font-black text-xs px-4 py-2 rounded-xl shadow-md transition flex items-center gap-1.5 mx-auto active:scale-95">
+            <i data-lucide="video" class="w-3.5 h-3.5"></i>
+            <span>Nyalakan Kamera Barcode</span>
+          </button>
+        </div>
+
+        <!-- Garis Laser Pemindai Bergerak -->
+        <div id="barcodeLaserLine" class="laser-scanner-line hidden"></div>
+
+        <!-- Tombol Matikan Kamera Saat Aktif -->
+        <button id="btnStopCamera" type="button" onclick="stopBarcodeCamera()" class="hidden absolute top-3 right-3 bg-rose-600/90 hover:bg-rose-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-xs transition">
+          Matikan Kamera
+        </button>
+
+        <div id="scannerStatusText" class="absolute bottom-2 left-2 right-2 text-center text-[10px] text-white bg-slate-950/70 backdrop-blur-sm py-1 rounded-lg border border-slate-700/50">
+          Arahkan barcode ke kotak pemindai atau klik chip uji di bawah
+        </div>
+      </div>
+
+      <!-- Simulator Barcode Cepat (Klik untuk Uji Coba Langsung Tanpa Cetak Fisik) -->
+      <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+            <span>Simulator Barcode Instan (Uji Langsung):</span>
+          </span>
+          <span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">1-Klik Scan</span>
+        </div>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">
+          Klik salah satu produk untuk mensimulasikan hasil pemindaian barcode dengan suara kasir:
+        </p>
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <button type="button" onclick="simulateBarcodeScan('ATK-001')" class="bg-white dark:bg-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-xl text-[11px] font-bold transition active:scale-95">
+            🏷️ ATK-001 (SiDU A4)
+          </button>
+          <button type="button" onclick="simulateBarcodeScan('ATK-002')" class="bg-white dark:bg-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-xl text-[11px] font-bold transition active:scale-95">
+            🏷️ ATK-002 (SiDU F4)
+          </button>
+          <button type="button" onclick="simulateBarcodeScan('ATK-003')" class="bg-white dark:bg-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-xl text-[11px] font-bold transition active:scale-95">
+            🏷️ ATK-003 (Pilot G2)
+          </button>
+          <button type="button" onclick="simulateBarcodeScan('ATK-004')" class="bg-white dark:bg-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-xl text-[11px] font-bold transition active:scale-95">
+            🏷️ ATK-004 (Buku SiDU)
+          </button>
+          <button type="button" onclick="simulateBarcodeScan('PRN-001')" class="bg-white dark:bg-slate-700 hover:bg-teal-50 dark:hover:bg-teal-950/60 border border-teal-300 dark:border-teal-700 text-teal-800 dark:text-teal-300 px-2.5 py-1 rounded-xl text-[11px] font-bold transition active:scale-95">
+            🖨️ PRN-001 (Cetak A4)
+          </button>
+          <button type="button" onclick="simulateBarcodeScan('KIKO-882')" class="bg-white dark:bg-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-xl text-[11px] font-bold transition active:scale-95">
+            📦 KIKO-882 (Kode Ambil)
+          </button>
+        </div>
+      </div>
+
+      <button type="button" onclick="closeBarcodeScannerModal()" class="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-2.5 rounded-xl text-xs transition">
+        Tutup Pemindai
       </button>
     </div>
   </div>
@@ -2564,6 +2822,28 @@
           class="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3 text-center text-lg font-extrabold tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-600" />
         <button onclick="handlePinLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-2xl shadow-md transition">
           Masuk ke Dashboard
+        </button>
+      </div>
+
+      <!-- KOLOM / KARTU BARU: PASANG APLIKASI INI DI PERANGKAT (PWA INSTALL) -->
+      <div class="cyber-glow-card bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-amber-500/10 dark:from-emerald-950/40 dark:via-teal-950/40 dark:to-amber-950/40 border border-emerald-300 dark:border-emerald-700/70 rounded-2xl p-3.5 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-[#03AC0E] text-white flex items-center justify-center font-bold shadow-sm">
+              <i data-lucide="download" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h4 class="font-extrabold text-xs text-slate-900 dark:text-slate-100">Pasang Aplikasi Ini di Perangkat</h4>
+              <p class="text-[10px] text-slate-500 dark:text-slate-400">Akses cepat layar penuh tanpa browser & hemat kuota</p>
+            </div>
+          </div>
+          <span id="pwaStatusBadge" class="text-[9px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+            PWA Ready
+          </span>
+        </div>
+        <button id="btnInstallPwa" onclick="triggerPwaInstall()" class="w-full bg-[#03AC0E] hover:bg-[#02940c] text-white font-black py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95">
+          <i data-lucide="smartphone" class="w-4 h-4"></i>
+          <span id="btnInstallPwaText">Pasang Sekarang ke Layar Utama</span>
         </button>
       </div>
 
@@ -2898,26 +3178,27 @@
   <!-- =========================================================================
        FIXED BOTTOM NAVIGATION BAR ALA TOKOPEDIA MOBILE (HANYA MUNCUL DI MOBILE / TABLET KECIL)
        ========================================================================= -->
-  <nav id="tokopediaBottomNav" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-1.5 flex items-center justify-around sm:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+  <nav id="tokopediaBottomNav" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around sm:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
     <button onclick="switchPublicTab('KATALOG')" id="botNavKatalog" class="flex flex-col items-center gap-0.5 text-[#03AC0E] font-bold transition">
       <i data-lucide="home" class="w-5 h-5"></i>
       <span class="text-[10px]">Belanja</span>
     </button>
-    <button onclick="switchPublicTab('CETAK')" id="botNavCetak" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-slate-800 font-semibold transition">
+    <button onclick="switchPublicTab('CETAK')" id="botNavCetak" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-semibold transition">
       <i data-lucide="printer" class="w-5 h-5"></i>
       <span class="text-[10px]">Print/FC</span>
     </button>
-    <button onclick="toggleKikoChat(true)" id="botNavKiko" class="flex flex-col items-center gap-0.5 text-[#03AC0E] relative font-semibold transition">
-      <div class="w-8 h-8 -mt-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 border-2 border-white">
+    <button onclick="switchPublicTab('LACAK')" id="botNavLacak" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-semibold transition">
+      <i data-lucide="package-search" class="w-5 h-5"></i>
+      <span class="text-[10px]">Lacak</span>
+    </button>
+    <button onclick="toggleKikoChat(true)" id="botNavKiko" class="flex flex-col items-center gap-0.5 text-[#03AC0E] relative font-semibold transition" title="Kiko AI & Keranjang">
+      <div class="relative w-8 h-8 -mt-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/40 border-2 border-white dark:border-slate-800">
         <i data-lucide="bot" class="w-4 h-4"></i>
+        <span id="botNavCartBadge" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-white">0</span>
       </div>
       <span class="text-[10px] font-extrabold text-[#03AC0E]">Kiko AI</span>
     </button>
-    <button onclick="openAlmatsuratModal()" id="botNavAlmatsurat" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-slate-800 font-semibold transition">
-      <i data-lucide="book-open-check" class="w-5 h-5"></i>
-      <span class="text-[10px]">Dzikir</span>
-    </button>
-    <button onclick="handleBottomNavAccountClick()" id="botNavAkun" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-slate-800 font-semibold transition">
+    <button onclick="handleBottomNavAccountClick()" id="botNavAkun" class="flex flex-col items-center gap-0.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 font-semibold transition">
       <i data-lucide="user-check" class="w-5 h-5"></i>
       <span class="text-[10px]" id="botNavAkunLabel">Kasir/Akun</span>
     </button>
@@ -4351,6 +4632,20 @@
       const totalItems = STATE.cart.reduce((acc, item) => acc + item.qty, 0);
       const badge = document.getElementById('cartCountBadge');
       if (badge) badge.textContent = totalItems;
+
+      // Update badge di maskot Kiko Robot melayang
+      const mascotBadge = document.getElementById('kikoMascotCartBadge');
+      if (mascotBadge) {
+        mascotBadge.textContent = totalItems;
+        mascotBadge.classList.toggle('hidden', totalItems <= 0);
+      }
+
+      // Update badge di tombol navigasi bawah mobile Kiko AI
+      const botNavBadge = document.getElementById('botNavCartBadge');
+      if (botNavBadge) {
+        botNavBadge.textContent = totalItems;
+        botNavBadge.classList.toggle('hidden', totalItems <= 0);
+      }
     }
 
     /**
@@ -5042,6 +5337,11 @@
       if (previewBox) previewBox.classList.add('hidden');
       const statusEl = document.getElementById('visionAiPrecheckStatus');
       if (statusEl) statusEl.textContent = '';
+      const badge = document.getElementById('chkProofStatusBadge');
+      if (badge) {
+        badge.className = 'bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse';
+        badge.textContent = 'WAJIB DIUNGGAH';
+      }
       STATE.uploadedPaymentProof = null;
     }
 
@@ -5066,6 +5366,13 @@
         if (statusEl) {
           statusEl.textContent = STATE.uploadedPaymentProof.aiSummary;
           statusEl.className = isSuspicious ? 'text-[11px] text-amber-600 font-bold mt-1' : 'text-[11px] text-emerald-700 font-bold mt-1';
+        }
+
+        // Update badge status wajib unggah menjadi terkonfirmasi
+        const badge = document.getElementById('chkProofStatusBadge');
+        if (badge) {
+          badge.className = 'bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full';
+          badge.textContent = '✓ SUDAH DILAMPIRKAN';
         }
 
         // Tampilkan Pratinjau Thumbnail
@@ -5339,6 +5646,12 @@
       }
       if (goToTracking) {
         switchPublicTab('LACAK');
+        const latestOrder = STATE.orders[0];
+        if (latestOrder) {
+          const input = document.getElementById('inputTrackOrderCode');
+          if (input) input.value = latestOrder.kodeAmbil || latestOrder.idPesanan;
+          renderPublicOrderTrackingList(latestOrder.kodeAmbil || latestOrder.idPesanan);
+        }
       }
     }
 
@@ -5350,6 +5663,19 @@
         // Otomatis tambahkan 1 produk etalase sampel agar pengguna bisa langsung menguji checkout & animasi selebrasi balon
         addSampleCartItem();
         showToast('Keranjang kosong. Menambahkan 1 item sampel untuk pengujian checkout!');
+        return;
+      }
+
+      // Validasi Wajib Unggah Struk / Bukti Bayar Transfer & QRIS
+      if (!STATE.uploadedPaymentProof) {
+        const proofBox = document.getElementById('chkPaymentProofContainer');
+        if (proofBox) {
+          proofBox.classList.remove('animate-shake');
+          void proofBox.offsetWidth; // Force reflow
+          proofBox.classList.add('animate-shake');
+          proofBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        showToast('⚠️ Wajib Unggah Struk Bayar: Silakan lampirkan foto bukti transfer atau screenshot QRIS Anda terlebih dahulu!');
         return;
       }
       const nama = document.getElementById('chkCustomerName')?.value.trim() || 'Pelanggan Online';
@@ -5480,12 +5806,15 @@
           </div>
           <div class="flex flex-col items-end gap-1.5">
             <span class="text-base font-extrabold text-emerald-800">Rp ${o.totalTagihan.toLocaleString('id-ID')}</span>
-            <div class="flex gap-1.5">
+            <div class="flex flex-wrap gap-1.5 justify-end">
+              <a href="https://wa.me/6281271118899?text=${encodeURIComponent('Halo Toko Delina, saya ingin menanyakan pesanan ' + o.idPesanan + ' (Kode Ambil: ' + o.kodeAmbil + ').')}" target="_blank" class="bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 font-bold px-3 py-1.5 rounded-xl inline-flex items-center gap-1">
+                <span>WA Toko</span>
+              </a>
               <button onclick="openThermalReceiptPreview('${o.idPesanan}')" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold px-3 py-1.5 rounded-xl">
                 Struk
               </button>
               <button onclick="openSpjPrintPreview('${o.idPesanan}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl">
-                Unduh Nota Resmi / SPJ
+                Unduh Nota SPJ
               </button>
             </div>
           </div>
@@ -5630,6 +5959,7 @@
       // Update Tokopedia mobile bottom navigation bar active indicator
       const botKatalog = document.getElementById('botNavKatalog');
       const botCetak = document.getElementById('botNavCetak');
+      const botLacak = document.getElementById('botNavLacak');
       if (botKatalog) {
         botKatalog.className = tabName === 'KATALOG'
           ? 'flex flex-col items-center gap-0.5 text-[#03AC0E] font-bold transition'
@@ -5640,8 +5970,20 @@
           ? 'flex flex-col items-center gap-0.5 text-[#03AC0E] font-bold transition'
           : 'flex flex-col items-center gap-0.5 text-slate-500 hover:text-slate-800 font-semibold transition';
       }
+      if (botLacak) {
+        botLacak.className = tabName === 'LACAK'
+          ? 'flex flex-col items-center gap-0.5 text-[#03AC0E] font-bold transition'
+          : 'flex flex-col items-center gap-0.5 text-slate-500 hover:text-slate-800 font-semibold transition';
+      }
 
-      if (tabName === 'CETAK') {
+      if (tabName === 'LACAK') {
+        renderPublicOrderTrackingList();
+        const lacakView = document.getElementById('publicSubViewLacak');
+        if (lacakView) {
+          lacakView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        safeCreateIcons();
+      } else if (tabName === 'CETAK') {
         safeCreateIcons();
         initCyberGlowTouchListeners();
       }
@@ -7867,6 +8209,242 @@ Mohon konfirmasi ketersediaan stok, harga grosir terkini, dan jadwal ekspedisi k
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
       }, 4200);
+    }
+
+    /**
+     * 15. PWA (PROGRESSIVE WEB APP) CONTROLLER
+     * "Pasang Aplikasi Ini di Perangkat" & Standalone Mode Optimization
+     */
+    let deferredPwaPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPwaPrompt = e;
+      const btn = document.getElementById('btnInstallPwa');
+      if (btn) {
+        btn.classList.remove('opacity-60');
+        btn.innerHTML = `<i data-lucide="download" class="w-4 h-4"></i><span>Pasang Sekarang (Instal Otomatis)</span>`;
+        safeCreateIcons();
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredPwaPrompt = null;
+      showToast('🎉 Toko Delina PWA berhasil terpasang di perangkat Anda!');
+      const btn = document.getElementById('btnInstallPwa');
+      if (btn) {
+        btn.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-300"></i><span>Aplikasi Sudah Terpasang</span>`;
+        btn.disabled = true;
+        safeCreateIcons();
+      }
+    });
+
+    function triggerPwaInstall() {
+      if (deferredPwaPrompt) {
+        deferredPwaPrompt.prompt();
+        deferredPwaPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            showToast('✅ Memasang Toko Delina ke layar beranda perangkat Anda...');
+          }
+          deferredPwaPrompt = null;
+        });
+      } else {
+        const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+        if (isStandalone) {
+          showToast('ℹ️ Toko Delina sudah terpasang dan berjalan dalam mode PWA Standalone di perangkat ini.');
+        } else if (isIos) {
+          alert('Panduan PWA di Safari iOS:\n1. Tekan tombol Bagikan (ikon kotak panah ke atas ⎋ di bawah browser)\n2. Gulir ke bawah lalu pilih "Tambah ke Layar Utama" (+ Add to Home Screen)\n3. Aplikasi Toko Delina akan muncul di layar iPhone/iPad Anda!');
+        } else {
+          showToast('💡 Cara Pasang PWA: Buka menu browser Chrome/Edge (titik tiga ⋮ di pojok kanan atas) lalu pilih "Instal aplikasi" atau "Tambahkan ke Layar Utama".');
+        }
+      }
+    }
+
+    /**
+     * 16. SCANNER SKU BARCODE & SIMULATOR CEPAT
+     * Pemindai Kamera Nyata (HTML5 getUserMedia + BarcodeDetector API) & Audio Kasir Beep
+     */
+    let barcodeScannerMode = 'PUBLIC'; // 'PUBLIC' | 'POS'
+    let barcodeMediaStream = null;
+    let barcodeDetectionInterval = null;
+
+    function openBarcodeScannerModal(mode = 'PUBLIC') {
+      barcodeScannerMode = mode;
+      const modal = document.getElementById('modalBarcodeScanner');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+
+      const statusEl = document.getElementById('scannerStatusText');
+      if (statusEl) {
+        if (mode === 'POS') {
+          statusEl.textContent = 'Mode Kasir POS: Scan SKU barcode untuk langsung menambahkan barang ke nota penjualan.';
+        } else {
+          statusEl.textContent = 'Mode Pelanggan: Scan kemasan ATK untuk masukkan ke keranjang belanja atau kode KIKO-xxx untuk lacak status.';
+        }
+      }
+      safeCreateIcons();
+    }
+
+    function closeBarcodeScannerModal() {
+      stopBarcodeCamera();
+      const modal = document.getElementById('modalBarcodeScanner');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function startBarcodeCamera() {
+      const video = document.getElementById('barcodeScannerVideo');
+      const placeholder = document.getElementById('barcodeCameraPlaceholder');
+      const laser = document.getElementById('barcodeLaserLine');
+      const stopBtn = document.getElementById('btnStopCamera');
+      const statusEl = document.getElementById('scannerStatusText');
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (statusEl) statusEl.textContent = '⚠️ Browser ini tidak mendukung akses kamera langsung. Silakan gunakan chip simulator di bawah.';
+        showToast('Akses kamera tidak didukung di browser ini. Anda dapat menguji dengan chip simulator di bawah!');
+        return;
+      }
+
+      try {
+        if (statusEl) statusEl.textContent = 'Meminta izin kamera...';
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        });
+        barcodeMediaStream = stream;
+        video.srcObject = stream;
+        video.classList.remove('hidden');
+        if (placeholder) placeholder.classList.add('hidden');
+        if (laser) laser.classList.remove('hidden');
+        if (stopBtn) stopBtn.classList.remove('hidden');
+        if (statusEl) statusEl.textContent = '📷 Kamera aktif. Arahkan barcode ke garis hijau pemindai!';
+
+        // Mulai pendeteksian otomatis jika BarcodeDetector didukung (Chrome / Edge / Android)
+        if ('BarcodeDetector' in window) {
+          try {
+            const detector = new window.BarcodeDetector({
+              formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'qr_code', 'upc_a', 'upc_e']
+            });
+            barcodeDetectionInterval = setInterval(async () => {
+              if (video.readyState >= 2) {
+                try {
+                  const barcodes = await detector.detect(video);
+                  if (barcodes.length > 0) {
+                    const rawVal = barcodes[0].rawValue;
+                    if (rawVal) {
+                      playCashierBeep();
+                      processScannedBarcode(rawVal);
+                    }
+                  }
+                } catch (detErr) {}
+              }
+            }, 600);
+          } catch (e) {
+            console.log('BarcodeDetector init fallback:', e);
+          }
+        }
+      } catch (err) {
+        console.warn('Camera access error:', err);
+        if (statusEl) statusEl.textContent = '⚠️ Izin kamera ditolak atau tidak ada webcam. Anda dapat mencoba chip simulator instan di bawah!';
+        showToast('Izin kamera ditolak atau tidak tersedia. Gunakan chip simulator instan di bawah!');
+      }
+    }
+
+    function stopBarcodeCamera() {
+      if (barcodeDetectionInterval) {
+        clearInterval(barcodeDetectionInterval);
+        barcodeDetectionInterval = null;
+      }
+      if (barcodeMediaStream) {
+        barcodeMediaStream.getTracks().forEach(track => track.stop());
+        barcodeMediaStream = null;
+      }
+      const video = document.getElementById('barcodeScannerVideo');
+      const placeholder = document.getElementById('barcodeCameraPlaceholder');
+      const laser = document.getElementById('barcodeLaserLine');
+      const stopBtn = document.getElementById('btnStopCamera');
+      if (video) {
+        video.srcObject = null;
+        video.classList.add('hidden');
+      }
+      if (placeholder) placeholder.classList.remove('hidden');
+      if (laser) laser.classList.add('hidden');
+      if (stopBtn) stopBtn.classList.add('hidden');
+    }
+
+    // Suara Beep Khas Kasir Retail / Supermarket Modern
+    function playCashierBeep() {
+      try {
+        const audioCtx = getCelebrationAudioContext() || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1850, audioCtx.currentTime); // 1850Hz nada scan kasir
+        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.13);
+      } catch (e) {
+        console.log('Audio beep fallback:', e);
+      }
+    }
+
+    function simulateBarcodeScan(code) {
+      playCashierBeep();
+      processScannedBarcode(code);
+    }
+
+    function processScannedBarcode(rawCode) {
+      const code = (rawCode || '').trim().toUpperCase();
+      if (!code) return;
+      closeBarcodeScannerModal();
+
+      if (barcodeScannerMode === 'POS') {
+        // Mode Kasir POS: Cari produk ATK atau Jasa Cetak
+        const atkProd = STATE.products.find(p => p.sku.toUpperCase() === code || p.nama.toUpperCase().includes(code));
+        if (atkProd) {
+          addPosItem('ATK', atkProd.sku);
+          renderPosItemGrid();
+          showToast(`🛒 [BEEP!] SKU ${atkProd.sku} (${atkProd.nama}) dimasukkan ke nota kasir POS!`);
+          return;
+        }
+        const srv = STATE.printServices.find(s => s.kode.toUpperCase() === code);
+        if (srv) {
+          addPosItem('CETAK', srv.kode);
+          renderPosItemGrid();
+          showToast(`🖨️ [BEEP!] Jasa ${srv.kode} (${srv.nama}) dimasukkan ke nota kasir POS!`);
+          return;
+        }
+        showToast(`⚠️ [BEEP!] Kode ${code} tidak terdaftar di database kasir POS.`);
+      } else {
+        // Mode Publik (Pelanggan)
+        if (code.startsWith('KIKO-') || code.startsWith('ORD-')) {
+          switchPublicTab('LACAK');
+          const input = document.getElementById('inputTrackOrderCode');
+          if (input) input.value = code;
+          renderPublicOrderTrackingList(code);
+          showToast(`🔍 [BEEP!] Kode Lacak ${code} terdeteksi! Membuka status pesanan Anda.`);
+          return;
+        }
+
+        const atkProd = STATE.products.find(p => p.sku.toUpperCase() === code || p.nama.toUpperCase().includes(code));
+        if (atkProd) {
+          addAtkToCart(atkProd.sku, 1);
+          showToast(`🛒 [BEEP!] ${atkProd.nama} (${atkProd.sku}) berhasil masuk ke keranjang belanja!`);
+          return;
+        }
+
+        const srv = STATE.printServices.find(s => s.kode.toUpperCase() === code);
+        if (srv) {
+          switchPublicTab('CETAK');
+          showToast(`🖨️ [BEEP!] Mengarahkan ke menu cetak untuk: ${srv.nama}`);
+          return;
+        }
+
+        showToast(`ℹ️ [BEEP!] Kode barcode ${code} terbaca.`);
+      }
     }
   </script>
 </body>

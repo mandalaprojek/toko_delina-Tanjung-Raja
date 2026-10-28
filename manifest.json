@@ -1,0 +1,25 @@
+{
+  "name": "Toko Delina ATK & Fotokopi - Kiko POS Smart Shop",
+  "short_name": "Toko Delina",
+  "description": "Aplikasi Kasir POS, Percetakan Dokumen & Belanja ATK Tanjung Raja Ogan Ilir",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#064E3B",
+  "theme_color": "#03AC0E",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=192&q=80",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=512&q=80",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "business", "productivity"]
+}
